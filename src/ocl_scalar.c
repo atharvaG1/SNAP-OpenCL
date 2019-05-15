@@ -1,13 +1,16 @@
 
 #include "ocl_sweep.h"
-
+#include "metamorph.h"
+#include "metacl_module.h"
 // Enqueue the kernel to reduce the angular flux to the scalar flux
+struct __meta_gen_opencl_metacl_module_frame * s_frame ;
 void ocl_scalar_flux_(void)
 {
     cl_int err;
-
-    const size_t global[3] = {nx, ny, nz};
-
+    
+    //const size_t global[3] = {nx, ny, nz}; 
+    a_dim3 global={nx,ny,nz};
+	/*
     err = clSetKernelArg(k_reduce_angular, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_reduce_angular, 1, sizeof(unsigned int), &ny);
     err |= clSetKernelArg(k_reduce_angular, 2, sizeof(unsigned int), &nz);
@@ -18,10 +21,12 @@ void ocl_scalar_flux_(void)
 
     err |= clSetKernelArg(k_reduce_angular, 7, sizeof(cl_mem), &d_weights);
     err |= clSetKernelArg(k_reduce_angular, 8, sizeof(cl_mem), &d_scat_coeff);
+	*/
 
     if (global_timestep % 2 == 0)
     {
-        err |= clSetKernelArg(k_reduce_angular, 9, sizeof(cl_mem), &d_flux_out[0]);
+	/*        
+	err |= clSetKernelArg(k_reduce_angular, 9, sizeof(cl_mem), &d_flux_out[0]);
         err |= clSetKernelArg(k_reduce_angular, 10, sizeof(cl_mem), &d_flux_out[1]);
         err |= clSetKernelArg(k_reduce_angular, 11, sizeof(cl_mem), &d_flux_out[2]);
         err |= clSetKernelArg(k_reduce_angular, 12, sizeof(cl_mem), &d_flux_out[3]);
@@ -38,9 +43,12 @@ void ocl_scalar_flux_(void)
         err |= clSetKernelArg(k_reduce_angular, 22, sizeof(cl_mem), &d_flux_in[5]);
         err |= clSetKernelArg(k_reduce_angular, 23, sizeof(cl_mem), &d_flux_in[6]);
         err |= clSetKernelArg(k_reduce_angular, 24, sizeof(cl_mem), &d_flux_in[7]);
+	*/
+	err= meta_gen_opencl_ocl_kernels_reduce_angular( queue[0], global, NULL, nx, ny,  nz, nang,  ng, noct, cmom, &d_weights,  &d_scat_coeff, &d_flux_out[0],  &d_flux_out[1], &d_flux_out[2],  &d_flux_out[3], &d_flux_out[4], &d_flux_out[5], &d_flux_out[6], &d_flux_out[7],  &d_flux_in[0],  &d_flux_in[1], &d_flux_in[2],  &d_flux_in[3], &d_flux_in[4], &d_flux_in[5], &d_flux_in[6], &d_flux_in[7] , &d_time_delta,  &d_scalar_flux, &d_scalar_mom, 0, NULL);
     }
     else
     {
+	/*
         err |= clSetKernelArg(k_reduce_angular, 9, sizeof(cl_mem), &d_flux_in[0]);
         err |= clSetKernelArg(k_reduce_angular, 10, sizeof(cl_mem), &d_flux_in[1]);
         err |= clSetKernelArg(k_reduce_angular, 11, sizeof(cl_mem), &d_flux_in[2]);
@@ -58,14 +66,19 @@ void ocl_scalar_flux_(void)
         err |= clSetKernelArg(k_reduce_angular, 22, sizeof(cl_mem), &d_flux_out[5]);
         err |= clSetKernelArg(k_reduce_angular, 23, sizeof(cl_mem), &d_flux_out[6]);
         err |= clSetKernelArg(k_reduce_angular, 24, sizeof(cl_mem), &d_flux_out[7]);
+	*/
+	err = meta_gen_opencl_ocl_kernels_reduce_angular_cell( queue[0], global, NULL, nx, ny,  nz, nang,  ng, noct, cmom,  &d_weights,  &d_scat_coeff, &d_flux_in[0],  &d_flux_in[1], &d_flux_in[2],  &d_flux_in[3], &d_flux_in[4], &d_flux_in[5], &d_flux_in[6], &d_flux_in[7],  &d_flux_out[0],  &d_flux_out[1], &d_flux_out[2],  &d_flux_out[3], &d_flux_out[4], &d_flux_out[5], &d_flux_out[6], &d_flux_out[7],  &d_time_delta,  &d_scalar_flux, &d_scalar_mom,0, NULL);
+    
     }
 
+    /*
     err |= clSetKernelArg(k_reduce_angular, 25, sizeof(cl_mem), &d_time_delta);
     err |= clSetKernelArg(k_reduce_angular, 26, sizeof(cl_mem), &d_scalar_flux);
     err |= clSetKernelArg(k_reduce_angular, 27, sizeof(cl_mem), &d_scalar_mom);
     check_error(err, "Setting reduce_angular kernel arguments");
 
     err = clEnqueueNDRangeKernel(queue[0], k_reduce_angular, 3, 0, global, NULL, 0, NULL, NULL);
+	*/
     check_error(err, "Enqueue reduce_angular kernel");
 
     //err = clFinish(queue[0]);
@@ -82,7 +95,10 @@ void reduce_angular_cells(void)
     // only within each workgroup.
     // Set the local size to the maximum allowed.
     size_t size;
-    err = clGetKernelWorkGroupInfo(k_reduce_angular_cell, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, NULL);
+    s_frame = __meta_gen_opencl_metacl_module_lookup_frame(queue[0]);
+
+    //err = clGetKernelWorkGroupInfo(k_reduce_angular_cell, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, NULL);
+    err = clGetKernelWorkGroupInfo(s_frame->reduce_angular_cell_kernel, s_frame->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, NULL);
     check_error(err, "Getting max work group size for kernel/device");
 
     // Do naive reduction if too small
@@ -97,9 +113,12 @@ void reduce_angular_cells(void)
     size_t power = 1 << (unsigned int)ceil(log2((double)nang));
     if (power < size) size = power;
 
-    const size_t global[2] = {size * ng, nx*ny*nz};
-    const size_t local[2] = {size, 1};
-
+    //const size_t global[2] = {size * ng, nx*ny*nz};
+    //const size_t local[2] = {size, 1};
+    a_dim3 global = {size * ng, nx*ny*nz,1};
+    a_dim3 local={size, 1,1};
+    
+   /*
     err = clSetKernelArg(k_reduce_angular_cell, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_reduce_angular_cell, 1, sizeof(unsigned int), &ny);
     err |= clSetKernelArg(k_reduce_angular_cell, 2, sizeof(unsigned int), &nz);
@@ -110,12 +129,13 @@ void reduce_angular_cells(void)
 
     err |= clSetKernelArg(k_reduce_angular_cell, 7, sizeof(double)*size, NULL);
 
-
+    
     err |= clSetKernelArg(k_reduce_angular_cell, 8, sizeof(cl_mem), &d_weights);
     err |= clSetKernelArg(k_reduce_angular_cell, 9, sizeof(cl_mem), &d_scat_coeff);
-
+	*/
     if (global_timestep % 2 == 0)
     {
+	/*
         err |= clSetKernelArg(k_reduce_angular_cell, 10, sizeof(cl_mem), &d_flux_out[0]);
         err |= clSetKernelArg(k_reduce_angular_cell, 11, sizeof(cl_mem), &d_flux_out[1]);
         err |= clSetKernelArg(k_reduce_angular_cell, 12, sizeof(cl_mem), &d_flux_out[2]);
@@ -133,10 +153,13 @@ void reduce_angular_cells(void)
         err |= clSetKernelArg(k_reduce_angular_cell, 23, sizeof(cl_mem), &d_flux_in[5]);
         err |= clSetKernelArg(k_reduce_angular_cell, 24, sizeof(cl_mem), &d_flux_in[6]);
         err |= clSetKernelArg(k_reduce_angular_cell, 25, sizeof(cl_mem), &d_flux_in[7]);
+	*/
+	err= 	meta_gen_opencl_ocl_kernels_reduce_angular_cell( queue[0], global, local, nx, ny,  nz, nang,  ng, noct, cmom, size,  &d_weights,  &d_scat_coeff, &d_flux_out[0],  &d_flux_out[1], &d_flux_out[2],  &d_flux_out[3], &d_flux_out[4], &d_flux_out[5], &d_flux_out[6], &d_flux_out[7],  &d_flux_in[0],  &d_flux_in[1], &d_flux_in[2],  &d_flux_in[3], &d_flux_in[4], &d_flux_in[5], &d_flux_in[6], &d_flux_in[7] , &d_time_delta,  &d_scalar_flux, 0, NULL);
     }
-    else
+  else
     {
-        err |= clSetKernelArg(k_reduce_angular_cell, 10, sizeof(cl_mem), &d_flux_in[0]);
+	/*        
+	err |= clSetKernelArg(k_reduce_angular_cell, 10, sizeof(cl_mem), &d_flux_in[0]);
         err |= clSetKernelArg(k_reduce_angular_cell, 11, sizeof(cl_mem), &d_flux_in[1]);
         err |= clSetKernelArg(k_reduce_angular_cell, 12, sizeof(cl_mem), &d_flux_in[2]);
         err |= clSetKernelArg(k_reduce_angular_cell, 13, sizeof(cl_mem), &d_flux_in[3]);
@@ -153,13 +176,16 @@ void reduce_angular_cells(void)
         err |= clSetKernelArg(k_reduce_angular_cell, 23, sizeof(cl_mem), &d_flux_out[5]);
         err |= clSetKernelArg(k_reduce_angular_cell, 24, sizeof(cl_mem), &d_flux_out[6]);
         err |= clSetKernelArg(k_reduce_angular_cell, 25, sizeof(cl_mem), &d_flux_out[7]);
+	*/
+	err= 	meta_gen_opencl_ocl_kernels_reduce_angular_cell( queue[0], global, local, nx, ny,  nz, nang,  ng, noct, cmom, size,  &d_weights,  &d_scat_coeff, &d_flux_in[0],  &d_flux_in[1], &d_flux_in[2],  &d_flux_in[3], &d_flux_in[4], &d_flux_in[5], &d_flux_in[6], &d_flux_in[7],  &d_flux_out[0],  &d_flux_out[1], &d_flux_out[2],  &d_flux_out[3], &d_flux_out[4], &d_flux_out[5], &d_flux_out[6], &d_flux_out[7],  &d_time_delta,  &d_scalar_flux, 0, NULL);
+    
     }
 
-    err |= clSetKernelArg(k_reduce_angular_cell, 26, sizeof(cl_mem), &d_time_delta);
-    err |= clSetKernelArg(k_reduce_angular_cell, 27, sizeof(cl_mem), &d_scalar_flux);
-    check_error(err, "Setting reduce_angular_cell kernel arguments");
+    //err |= clSetKernelArg(k_reduce_angular_cell, 26, sizeof(cl_mem), &d_time_delta);
+    //err |= clSetKernelArg(k_reduce_angular_cell, 27, sizeof(cl_mem), &d_scalar_flux);
+    //check_error(err, "Setting reduce_angular_cell kernel arguments");
 
-    err = clEnqueueNDRangeKernel(queue[0], k_reduce_angular_cell, 2, 0, global, local, 0, NULL, NULL);
+    //err = clEnqueueNDRangeKernel(queue[0], k_reduce_angular_cell, 2, 0, global, local, 0, NULL, NULL);
     check_error(err, "Enqueue reduce_angular_cell kernel");
 
 }
@@ -173,7 +199,9 @@ void reduce_moments_cells(void)
     // only within each workgroup.
     // Set the local size to the maximum allowed.
     size_t size;
-    err = clGetKernelWorkGroupInfo(k_reduce_moments_cell, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, NULL);
+    //err = clGetKernelWorkGroupInfo(k_reduce_moments_cell, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, NULL);
+     s_frame = __meta_gen_opencl_metacl_module_lookup_frame(queue[0]);
+    err = clGetKernelWorkGroupInfo(s_frame->reduce_moments_cell_kernel, s_frame->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, NULL);
     check_error(err, "Getting max work group size for kernel/device");
 
     // Do naive reduction if too small
@@ -192,9 +220,11 @@ void reduce_moments_cells(void)
     else
         size = power_down;
 
-    const size_t global[2] = {size * ng, nx*ny*nz};
-    const size_t local[2] = {size, 1};
-
+    //const size_t global[2] = {size * ng, nx*ny*nz};
+    //const size_t local[2] = {size, 1}; 
+    a_dim3 global = {size * ng, nx*ny*nz,1};
+    a_dim3 local={size, 1,1};
+    /*	
     err = clSetKernelArg(k_reduce_moments_cell, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_reduce_moments_cell, 1, sizeof(unsigned int), &ny);
     err |= clSetKernelArg(k_reduce_moments_cell, 2, sizeof(unsigned int), &nz);
@@ -208,10 +238,11 @@ void reduce_moments_cells(void)
 
     err |= clSetKernelArg(k_reduce_moments_cell, 8, sizeof(cl_mem), &d_weights);
     err |= clSetKernelArg(k_reduce_moments_cell, 9, sizeof(cl_mem), &d_scat_coeff);
-
+	*/
     if (global_timestep % 2 == 0)
     {
-        err |= clSetKernelArg(k_reduce_moments_cell, 10, sizeof(cl_mem), &d_flux_out[0]);
+	/*        
+	err |= clSetKernelArg(k_reduce_moments_cell, 10, sizeof(cl_mem), &d_flux_out[0]);
         err |= clSetKernelArg(k_reduce_moments_cell, 11, sizeof(cl_mem), &d_flux_out[1]);
         err |= clSetKernelArg(k_reduce_moments_cell, 12, sizeof(cl_mem), &d_flux_out[2]);
         err |= clSetKernelArg(k_reduce_moments_cell, 13, sizeof(cl_mem), &d_flux_out[3]);
@@ -228,10 +259,13 @@ void reduce_moments_cells(void)
         err |= clSetKernelArg(k_reduce_moments_cell, 23, sizeof(cl_mem), &d_flux_in[5]);
         err |= clSetKernelArg(k_reduce_moments_cell, 24, sizeof(cl_mem), &d_flux_in[6]);
         err |= clSetKernelArg(k_reduce_moments_cell, 25, sizeof(cl_mem), &d_flux_in[7]);
+	*/
+	err= 	meta_gen_opencl_ocl_kernels_reduce_moments_cell( queue[0], global, local, nx, ny,  nz, nang,  ng, noct, cmom,  size, &d_weights,  &d_scat_coeff, &d_flux_out[0],  &d_flux_out[1], &d_flux_out[2],  &d_flux_out[3], &d_flux_out[4], &d_flux_out[5], &d_flux_out[6], &d_flux_out[7],  &d_flux_in[0],  &d_flux_in[1], &d_flux_in[2],  &d_flux_in[3], &d_flux_in[4], &d_flux_in[5], &d_flux_in[6], &d_flux_in[7] , &d_time_delta,  &d_scalar_mom, 0, NULL);
     }
     else
     {
-        err |= clSetKernelArg(k_reduce_moments_cell, 10, sizeof(cl_mem), &d_flux_in[0]);
+	/*        
+	err |= clSetKernelArg(k_reduce_moments_cell, 10, sizeof(cl_mem), &d_flux_in[0]);
         err |= clSetKernelArg(k_reduce_moments_cell, 11, sizeof(cl_mem), &d_flux_in[1]);
         err |= clSetKernelArg(k_reduce_moments_cell, 12, sizeof(cl_mem), &d_flux_in[2]);
         err |= clSetKernelArg(k_reduce_moments_cell, 13, sizeof(cl_mem), &d_flux_in[3]);
@@ -248,13 +282,16 @@ void reduce_moments_cells(void)
         err |= clSetKernelArg(k_reduce_moments_cell, 23, sizeof(cl_mem), &d_flux_out[5]);
         err |= clSetKernelArg(k_reduce_moments_cell, 24, sizeof(cl_mem), &d_flux_out[6]);
         err |= clSetKernelArg(k_reduce_moments_cell, 25, sizeof(cl_mem), &d_flux_out[7]);
+	*/
+        err= meta_gen_opencl_ocl_kernels_reduce_moments_cell( queue[0], global, local, nx, ny,  nz, nang,  ng, noct, cmom,  size, &d_weights,  &d_scat_coeff, &d_flux_in[0],  &d_flux_in[1], &d_flux_in[2],  &d_flux_in[3], &d_flux_in[4], &d_flux_in[5], &d_flux_in[6], &d_flux_in[7],  &d_flux_out[0],  &d_flux_out[1], &d_flux_out[2],  &d_flux_out[3], &d_flux_out[4], &d_flux_out[5], &d_flux_out[6], &d_flux_out[7] , &d_time_delta,  &d_scalar_mom, 0, NULL);
     }
-
+	/*
     err |= clSetKernelArg(k_reduce_moments_cell, 26, sizeof(cl_mem), &d_time_delta);
     err |= clSetKernelArg(k_reduce_moments_cell, 27, sizeof(cl_mem), &d_scalar_mom);
     check_error(err, "Setting reduce_moments_cell kernel arguments");
 
     err = clEnqueueNDRangeKernel(queue[0], k_reduce_moments_cell, 2, 0, global, local, 0, NULL, NULL);
+	*/
     check_error(err, "Enqueue reduce_moments_cell kernel");
 
 }

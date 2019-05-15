@@ -1,6 +1,7 @@
 
 #include "ocl_sweep.h"
-
+#include "metamorph.h"
+#include "metacl_module.h"
 
 
 // Forward declare to zero buffer functions
@@ -159,7 +160,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     {
         local = NULL;
     }
-
+/*
     for (int qq = 0; qq < NUM_QUEUES; qq++)
     {
         err = clSetKernelArg(k_sweep_cell[qq], 3, sizeof(unsigned int), &oct);
@@ -185,17 +186,31 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         }
         check_error(err, "Setting flux_in/out args for sweep_cell kernel");
     }
+*/
+	cl_double ddi= (cl_double)(d_dd_i);
 
     // Loop over the diagonal wavefronts
     for (unsigned int d = 0; d < ndiag; d++)
     {
         cl_mem d_list = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(struct cell)*planes[d].num_cells, planes[d].cells, &err);
         check_error(err, "Copying diagonal list");
-        err = clSetKernelArg(k_sweep_cell[0], 26, sizeof(cl_mem), &d_list);
-        check_error(err, "Setting list argument");
-        global[1] = planes[d].num_cells;
-        err = clEnqueueNDRangeKernel(queue[0], k_sweep_cell[0], 2, 0, global, local, 0, NULL, NULL);
-        check_error(err, "enqueue wavefront");
+        //err = clSetKernelArg(k_sweep_cell[0], 26, sizeof(cl_mem), &d_list);
+       // check_error(err, "Setting list argument");
+        a_dim3 global = {planes[d].num_cells,1,1};
+        //err = clEnqueueNDRangeKernel(queue[0], k_sweep_cell[0], 2, 0, global, local, 0, NULL, NULL);
+
+
+	if (timestep % 2 == 0)
+        {
+            err= meta_gen_opencl_ocl_kernels_sweep_cell(queue[0], global, NULL, istep, jstep, kstep, oct,  ichunk,  nx,  ny,  nz,  ng,  nang,  noct,  cmom,  ddi, &d_dd_j, &d_dd_k, &d_mu, &d_scat_coeff, &d_time_delta, &d_total_cross_section, &d_flux_in[oct], &d_flux_out[oct], &d_flux_i, &d_flux_j, &d_flux_k, &d_source, &d_denom, &d_list, &d_groups_todo, &num_groups_todo, 0,NULL);
+        
+        }
+        else
+        {
+            err= meta_gen_opencl_ocl_kernels_sweep_cell(queue[0], global, NULL, istep, jstep, kstep, oct,  ichunk,  nx,  ny,  nz,  ng,  nang,  noct,  cmom,  ddi, &d_dd_j, &d_dd_k, &d_mu, &d_scat_coeff, &d_time_delta, &d_total_cross_section, &d_flux_out[oct], &d_flux_in[oct], &d_flux_i, &d_flux_j, &d_flux_k, &d_source, &d_denom, &d_list, &d_groups_todo, &num_groups_todo, 0,NULL);
+        
+        }
+	check_error(err, "enqueue wavefront");
         err = clReleaseMemObject(d_list);
         check_error(err, "Release mem object");
     }
@@ -214,7 +229,7 @@ void ocl_sweep_(unsigned int num_groups_todo)
     plane *planes = compute_sweep_order();
 
     // Set the constant kernel arguemnts
-    set_sweep_cell_args();
+    //set_sweep_cell_args();
 
     for (int o = 0; o < noct; o++)
     {

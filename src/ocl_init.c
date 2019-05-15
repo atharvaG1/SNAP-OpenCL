@@ -1,9 +1,10 @@
 
 #include "ocl_sweep.h"
-
+#include <string.h>
 // Include the kernel strings
 #include "ocl_kernels.h"
-
+#include "metamorph.h"
+#include "metacl_module.h"
 #define MAX_DEVICES 12
 
 #define MAX_INFO_STRING 128
@@ -53,7 +54,6 @@ void opencl_setup_(void)
     printf("Setting up OpenCL environment...\n\n");
 
     cl_int err;
-
     // Use the first device by default
     int device_index = 0;
 
@@ -95,12 +95,21 @@ void opencl_setup_(void)
     check_error(err, "Creating context");
 
     // Create command queues
+    cl_platform_id plat;
+    clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &plat, NULL); 
     for (int i = 0; i < NUM_QUEUES; i++)
     {
         queue[i] = clCreateCommandQueue(context, device, 0, &err);
+	
+    
         check_error(err, "Creating command queue");
     }
-
+     
+    __meta_gen_opencl_ocl_kernels_custom_args="-cl-mad-enable -cl-fast-relaxed-math";
+   
+    meta_set_acc(-1, metaModePreferOpenCL); //Must be set to OpenCL, don't need a device since we will override
+    meta_set_state_OpenCL(plat, device, context, queue[0]);
+    meta_register_module(&meta_gen_opencl_metacl_module_registry);
     // Create program
     program = clCreateProgramWithSource(context, 1, &ocl_kernels_ocl, NULL, &err);
     check_error(err, "Creating program");
@@ -111,6 +120,8 @@ void opencl_setup_(void)
     check_build_error(err, "Building program");
 
     // Create kernels
+    
+   /*
     for (int i = 0; i < NUM_QUEUES; i++)
     {
         k_sweep_cell[i] = clCreateKernel(program, "sweep_cell", &err);
@@ -149,15 +160,17 @@ void opencl_setup_(void)
 
     k_zero_edge_array = clCreateKernel(program, "zero_edge_array", &err);
     check_error(err, "Creating kernel zero_edge_array");
-    printf("\nOpenCL environment setup complete\n\n");
-
+*/    
+  
+   printf("\nOpenCL environment setup complete\n\n");
+	
 }
 
 // Release the global OpenCL handles
 void opencl_teardown_(void)
 {
     printf("Releasing OpenCL...");
-
+    meta_deregister_module(&meta_gen_opencl_metacl_module_registry);
     // Release the zero edge array
     free(zero_edge);
 
@@ -252,6 +265,7 @@ void opencl_teardown_(void)
     check_error(err, "Releasing d_groups_todo buffer");
 
     // Release kernels
+	/*
     for (int i = 0; i < NUM_QUEUES; i++)
     {
         err = clReleaseKernel(k_sweep_cell[i]);
@@ -291,9 +305,12 @@ void opencl_teardown_(void)
     err = clReleaseKernel(k_zero_edge_array);
     check_error(err, "Releasing k_zero_edge_array kernel");
 
+
     // Release program
     err = clReleaseProgram(program);
     check_error(err, "Releasing program");
+	*/
+	
 
 #ifdef CL_VERSION_1_2
     err = clReleaseDevice(device);
