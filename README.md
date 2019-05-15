@@ -12,12 +12,31 @@ The iterative strategy is comprised of a set of two nested loops. These nested l
 
 SNAP should be tested with problem sizes that accurately reflect the types of calculations PARTISN frequently handles. The spatial domain shall be decomposed to 2,000--4,000 cells per node (MPI rank). Each node will own all the energy groups and angles for that group of cells; typical calculations feature 10--100 energy groups and as few as 100 to as many as 2,000 angles. Moreover, sufficient memory must be provided to store two full copies of the solution vector for time-dependent calculations. The preceding parameters assume current trends in available per core memory. Significant advances or detriments affecting this assumption shall require reconsideration of appropriate parameters per compute node.
 
+MetaCL and MetaMorph:
+-----------
+MetaMorph (https://github.com/vtsynergy/MetaMorph) is a framework designed designed to effectively utilize HPC systems that consist of multiple heterogeneous nodes with different hardware accelerators. It acts as middleware between the application code and compute devices, such as CPUs, GPUs, Intel MIC and FPGAs. MetaMorph hides the complexity of developing code for and executing on heterogeneous platform by acting as a unified “meta-platform.” Metamorph is developed by the Synergy Laboratory @ Virginia Tech (http://synergy.cs.vt.edu/)
+
+MetaCL is a tool that takes OpenCL kernels as input and generates host-side wrappers. These wrappers can be effectively make OpenCL host code developement efficient. MetaCL makes use of Metamorph's OpenCL APIs and backend for generating host-side wrappers. This repository includes  "MetaCL"-ized version of SNAP.
+
+Metacl Tutorial: https://github.com/vtsynergy/MetaMorph/tree/c661366a13dec9eb7b9876c91695da48e96d8ba8/metamorph-generators/opencl/docs/tutorials
+
+
+
 Compilation
 -----------
 
+ 
 SNAP has been written to the Fortran 90/95 standard. It has been successfully built with, but not necessarily limited to, gfortran and ifort. Moreover, the code has been built with the profiling tool [Byfl](https://github.com/losalamos/byfl). The accompanying Makefile retains some of the old make options for different build types. However, the current build system depends on the availability of MPI and OpenMP libraries. Builds without these libraries will require modification to the source code to remove related subroutine calls and directives.
 
 MPI implementations typically suggest using a "wrapper" compiler to compile the code. SNAP has been built and tested with OpenMPI. OpenMPI allows one to set the underlying Fortran compiler with the environment variable OMPI_FC, where the variable is set to the (path and) compiler of choice, e.g., ifort, gfortran, etc.
+
+
+Metamorph dependancies are located at MetaMorph/include and MetaMorph/metamorph-backends/opencl-backend. This are included in makefile by updating CFLAGS
+
+CFLAGS = -std=c99  -D WITH_OPENCL -I ~ (Path)/MetaMorph/include -I ~/(Path)/MetaMorph/metamorph-backends/opencl-backend -O3
+
+LDFLAGS are located in  MetaMorph/lib and -L (Path)/MetaMorph/lib is added in the rule for TARGET.
+    
 
 The makefile currently uses:
 
@@ -65,13 +84,14 @@ The line count report excludes blank lines and comments. It counts the number of
 Usage
 -----
 
-Because SNAP currently requires building with MPI, to execute SNAP, use the following command:
+SNAP currently requires building with MPI, to execute SNAP, use the following command:
 
-    mpirun -np [#] [path]/snap [infile] [outfile]
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/metaCL_workspace/MetaMorph/lib mpirun -np [#] [path]/snap [infile] [outfile]
+
 
 This command will automatically run with the number of threads specified by the input file, which is used to set the number of OpenMP threads, overwriting any environment variable to set the number of threads. Testing has shown that to ensure proper concurrency of work, the above command can be modified to
 
-    mpirun -cpus-per-proc [#threads] -np [#procs] [path]/snap [infile] [outfile]
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/metaCL_workspace/MetaMorph/libmpirun -cpus-per-proc [#threads] -np [#procs] [path]/snap [infile] [outfile]
 
 Lastly, a user may wish to test the various thread affinity settings used to bind threads to processing elements. Testing has been done with a disabled Intel thread affinity interface.
 
