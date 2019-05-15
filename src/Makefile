@@ -1,6 +1,7 @@
 #
 # Build SNAP
 #
+
 OPT = yes
 FFLAGS = -O3
 FFLAG2 =
@@ -23,7 +24,7 @@ ifeq ($(FORTRAN),mpif90)
 endif
 
 CC = mpicc
-CFLAGS = -std=c99 -O3
+CFLAGS = -std=c99  -D WITH_OPENCL -I ~/metaCL_workspace/MetaMorph/include -I ~/metaCL_workspace/MetaMorph/metamorph-backends/opencl-backend -O3
 CFLAGS2 = -lm
 ifdef TIMING
 	CFLAGS += -DTIMING
@@ -79,7 +80,7 @@ OBJS = global.o snap_main.o utils.o version.o plib.o geom.o sn.o \
        outer.o expxs.o inner.o sweep.o octsweep.o dim1_sweep.o dim3_sweep.o \
        output.o time.o mms.o $(OCL_OBJS)
 
-OCL_OBJS = ocl_sweep.o ocl_init.o ocl_scalar.o ocl_memory.o ocl_iterations.o ocl_problem.o
+OCL_OBJS = ocl_sweep.o ocl_init.o ocl_scalar.o ocl_memory.o ocl_iterations.o ocl_problem.o metacl_module.o
 
 SRCS = global.f90 snap_main.f90 utils.f90 version.f90 plib.f90 geom.f90 \
        sn.f90 data.f90 control.f90 input.f90 setup.f90 dealloc.f90 \
@@ -87,7 +88,7 @@ SRCS = global.f90 snap_main.f90 utils.f90 version.f90 plib.f90 geom.f90 \
        octsweep.f90 dim1_sweep.f90 dim3_sweep.f90 output.f90 time.f90 mms.f90
 
 $(TARGET) :	$(OBJS)
-		$(FORTRAN) $(FFLAGS) $(FFLAG2) -o $@ $(OBJS) $(OPENCL)
+		$(FORTRAN) $(FFLAGS) $(FFLAG2) -L ~/metaCL_workspace/MetaMorph/lib -o $@ $(OBJS) -lmm_opencl_backend -lmetamorph  $(OPENCL)
 
 snap_main.o :	global.o utils.o version.o input.o setup.o output.o time.o \
 		dealloc.o plib.o control.o
@@ -126,13 +127,17 @@ mms.o:	global.o geom.o sn.o data.o control.o plib.o
 %.o:	%.f90
 	$(FORTRAN) $(FFLAGS) -c $<
 
+
 #
 # C rule
 #
-%.o:	%.c ocl_sweep.h
+%.o:	%.c ocl_sweep.h 
 	$(CC) $(CFLAGS) -c $< $(OPENCL) $(CFLAGS2)
 
-ocl_init.o:	ocl_kernels.h
+metacl_module.o: metacl_module.c
+		 $(CC) $(CFLAGS) -c $<  $(CFLAGS2)
+		 
+ocl_init.o:	ocl_kernels.h 
 
 
 #
@@ -146,6 +151,10 @@ ocl_kernels.h:	ocl_kernels.cl
 #
 clean:
 	rm -f *.o *.mod *.bc sweep_kernels.h
+
+
+run: 
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/metaCL_workspace/MetaMorph/lib mpirun -np $(p) ./snap $(i) $(o)
 
 #
 # Count lines of code
