@@ -79,21 +79,21 @@ void zero_edge_flux_buffers_(void)
     //err = clSetKernelArg(k_zero_edge_array, 0, sizeof(cl_mem), &d_flux_i);
     //check_error(err, "setting zero array flux_i");
     //err = clEnqueueNDRangeKernel(queue[0], k_zero_edge_array, 1, 0, global, NULL, 0, NULL, NULL);
-    err = meta_gen_opencl_ocl_kernels_zero_edge_array(queue[0], &global, &local, &d_flux_i, 0, NULL);
+    err = meta_gen_opencl_ocl_kernels_zero_edge_array(queue[0], &global, &local, &d_flux_i, 0, NULL,1);
     check_error(err, "Enqueue zero flux_i");
     temp= nang*ny*nz*ng;
     //global = {temp,1,1};
     //err = clSetKernelArg(k_zero_edge_array, 0, sizeof(cl_mem), &d_flux_j);
     //check_error(err, "setting zero array flux_j");
     //err = clEnqueueNDRangeKernel(queue[0], k_zero_edge_array, 1, 0, global, NULL, 0, NULL, NULL);
-    err = meta_gen_opencl_ocl_kernels_zero_edge_array(queue[0], &global, &local, &d_flux_j, 0, NULL);
+    err = meta_gen_opencl_ocl_kernels_zero_edge_array(queue[0], &global, &local, &d_flux_j, 0, NULL,1);
     check_error(err, "Enqueue zero flux_j");
     //temp= nang*ny*nz*ng;
     //global = {temp,1,1};
     //err = clSetKernelArg(k_zero_edge_array, 0, sizeof(cl_mem), &d_flux_k);
     //check_error(err, "setting zero array flux_k");
     //err = clEnqueueNDRangeKernel(queue[0], k_zero_edge_array, 1, 0, global, NULL, 0, NULL, NULL);
-    err = meta_gen_opencl_ocl_kernels_zero_edge_array(queue[0], &global, &local, &d_flux_k, 0, NULL);
+    err = meta_gen_opencl_ocl_kernels_zero_edge_array(queue[0], &global, &local, &d_flux_k, 0, NULL,1);
     check_error(err, "Enqueue zero flux_k");
 }
 
@@ -154,8 +154,8 @@ void zero_scalar_moments(void)
 void calc_denom(void)
 {
     cl_int err;
-    //const size_t global[2] = {nang, ng};
-    a_dim3 global= {nang,ng,1}; 
+    const size_t global[2] = {nang, ng};
+    //a_dim3 global= {nang,ng,1}; 
 /*    
     err = clSetKernelArg(k_calc_denominator, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_calc_denominator, 1, sizeof(unsigned int), &ny);
@@ -174,7 +174,7 @@ void calc_denom(void)
     err = clEnqueueNDRangeKernel(queue[0], k_calc_denominator, 2, 0, global, NULL, 0, NULL, NULL);
 	*/
     cl_double ddi= (cl_double)(d_dd_i);
-    err= meta_gen_opencl_ocl_kernels_calc_denominator(queue[0], global, NULL,  nx, ny, nz,  nang, ng, &d_total_cross_section, &d_time_delta, &d_mu, ddi, &d_dd_j, &d_dd_k, &d_denom, 0, NULL);
+    err= meta_gen_opencl_ocl_kernels_calc_denominator(queue[0], &global, NULL,  nx, ny, nz,  nang, ng, &d_total_cross_section, &d_time_delta, &d_mu, ddi, &d_dd_j, &d_dd_k, &d_denom, 0, NULL,2);
     check_error(err, "Enqueue calc_denom kernel");
 }
 
@@ -184,8 +184,8 @@ void calc_dd_coefficients(void)
     cl_int err;
     d_dd_i = 2.0 / dx;
 
-    //const size_t global[1] = {nang};
-    a_dim3 global ={nang,1,1};
+    const size_t global[1] = {nang};
+    //a_dim3 global ={nang,1,1};
 	/*
     err = clSetKernelArg(k_calc_dd_coefficients, 0, sizeof(double), &dy);
     err |= clSetKernelArg(k_calc_dd_coefficients, 1, sizeof(double), &dz);
@@ -197,7 +197,7 @@ void calc_dd_coefficients(void)
 
     err = clEnqueueNDRangeKernel(queue[0], k_calc_dd_coefficients, 1, 0, global, NULL, 0, NULL, NULL);
 	*/
-    err=meta_gen_opencl_ocl_kernels_calc_dd_coefficients(queue[0], global, NULL, dy, dz, &d_eta, &d_xi, &d_dd_j, &d_dd_k, 0, NULL)   ; 
+    err=meta_gen_opencl_ocl_kernels_calc_dd_coefficients(queue[0], &global, NULL, dy, dz, &d_eta, &d_xi, &d_dd_j, &d_dd_k, 0, NULL,1)   ; 
 	check_error(err, "Enqueue calc_dd_coefficients kernel");
 }
 
@@ -205,14 +205,14 @@ void calc_dd_coefficients(void)
 void calc_time_delta(void)
 {
     cl_int err;
-    //const size_t global[1] = {ng};
-    a_dim3 global={ng,1,1};
+    const size_t global[1] = {ng};
+    //a_dim3 global={ng,1,1};
     //err = clSetKernelArg(k_calc_time_delta, 0, sizeof(double), &dt);
     //err |= clSetKernelArg(k_calc_time_delta, 1, sizeof(cl_mem), &d_velocity);
     //err |= clSetKernelArg(k_calc_time_delta, 2, sizeof(cl_mem), &d_time_delta);
     //check_error(err, "Setting calc_time_delta arguments");
-    cl_double ddt= (cl_double)dt;
-    err=meta_gen_opencl_ocl_kernels_calc_time_delta(queue[0], global, NULL, ddt, &d_velocity,  &d_time_delta,0, NULL);
+    
+    err=meta_gen_opencl_ocl_kernels_calc_time_delta(queue[0], &global, NULL, dt, &d_velocity,  &d_time_delta,0, NULL,1);
     //err = clEnqueueNDRangeKernel(queue[0], k_calc_time_delta, 1, 0, global, NULL, 0, NULL, NULL);
     check_error(err, "Enqueue calc_time_delta kernel");
 
@@ -222,8 +222,8 @@ void calc_time_delta(void)
 void expand_cross_section(cl_mem * in, cl_mem * out)
 {
     cl_int err;
-    //const size_t global[1] = {ng};
-    a_dim3 global={ng,1,1};
+    const size_t global[1] = {ng};
+    //a_dim3 global={ng,1,1};
 /*
     err = clSetKernelArg(k_calc_total_cross_section, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_calc_total_cross_section, 1, sizeof(unsigned int), &ny);
@@ -236,15 +236,15 @@ void expand_cross_section(cl_mem * in, cl_mem * out)
     check_error(err, "Setting calc_total_cross_section arguments");
 */
     //err = clEnqueueNDRangeKernel(queue[0], k_calc_total_cross_section, 1, 0, global, NULL, 0, NULL, NULL);
-    err= meta_gen_opencl_ocl_kernels_calc_total_cross_section(queue[0], global, NULL,  nx, ny,  nz,  ng,  nmat, in, &d_map, out, 0,NULL);
+    err= meta_gen_opencl_ocl_kernels_calc_total_cross_section(queue[0], &global, NULL,  nx, ny,  nz,  ng,  nmat, in, &d_map, out, 0,NULL,1);
     check_error(err, "Enqueue calc_total_cross_section kernel");
 }
 
 void compute_outer_source(void)
 {
     cl_int err;
-    //const size_t global[1] = {nx*ny*nz};
-    a_dim3 global={nx*ny*nz,1,1};
+    const size_t global[1] = {nx*ny*nz};
+    //a_dim3 global={nx*ny*nz,1,1};
     /*
     err = clSetKernelArg(k_calc_outer_source, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_calc_outer_source, 1, sizeof(unsigned int), &ny);
@@ -263,7 +263,7 @@ void compute_outer_source(void)
     check_error(err, "Setting calc_outer_source arguments");
 	*/
     //err = clEnqueueNDRangeKernel(queue[0], k_calc_outer_source, 1, 0, global, NULL, 0, NULL, NULL);
-    err= meta_gen_opencl_ocl_kernels_calc_outer_source(queue[0], global, NULL, nx, ny,  nz, ng,  nmom,  cmom,  nmat, &d_map,  &d_gg_cs,  &d_fixed_source,  &d_lma,  &d_scalar_flux, &d_scalar_mom,   &d_g2g_source, 0, NULL); 
+    err= meta_gen_opencl_ocl_kernels_calc_outer_source(queue[0], &global, NULL, nx, ny,  nz, ng,  nmom,  cmom,  nmat, &d_map,  &d_gg_cs,  &d_fixed_source,  &d_lma,  &d_scalar_flux, &d_scalar_mom,   &d_g2g_source, 0, NULL,1); 
   
     check_error(err, "Enqueue calc_outer_source kernel");
 }
@@ -272,8 +272,8 @@ void compute_outer_source(void)
 void compute_inner_source(void)
 {
     cl_int err;
-//    const size_t global[1] = {nx*ny*nz};
-    a_dim3 global={ nx*ny*nz,1,1};   
+    const size_t global[1] = {nx*ny*nz};
+    //a_dim3 global={ nx*ny*nz,1,1};   
 /*	
     err = clSetKernelArg(k_calc_inner_source, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_calc_inner_source, 1, sizeof(unsigned int), &ny);
@@ -290,7 +290,7 @@ void compute_inner_source(void)
     check_error(err, "Setting calc_inner_source arguments");
 */
     //err = clEnqueueNDRangeKernel(queue[0], k_calc_inner_source, 1, 0, global, NULL, 0, NULL, NULL);
-    err= meta_gen_opencl_ocl_kernels_calc_inner_source(queue[0], global, NULL, nx, ny,nz,ng,nmom, cmom, &d_g2g_source,  &d_scat_cs, &d_scalar_flux,  &d_scalar_mom, &d_lma,  &d_source, 0, NULL);
+    err= meta_gen_opencl_ocl_kernels_calc_inner_source(queue[0], &global, NULL, nx, ny,nz,ng,nmom, cmom, &d_g2g_source,  &d_scat_cs, &d_scalar_flux,  &d_scalar_mom, &d_lma,  &d_source, 0, NULL,1);
 
     check_error(err, "Enqueue calc_inner_source kernel");
 }
@@ -300,8 +300,8 @@ void compute_inner_source(void)
 void expand_scattering_cross_section(void)
 {
     cl_int err;
-    //const size_t global[1] = {ng};  
-    a_dim3 global={ng,1,1};
+    const size_t global[1] = {ng};  
+    
     /*
     err = clSetKernelArg(k_calc_scattering_cross_section, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_calc_scattering_cross_section, 1, sizeof(unsigned int), &ny);
@@ -315,7 +315,7 @@ void expand_scattering_cross_section(void)
     check_error(err, "Setting calc_total_scattering_section arguments");
     */
     //err = clEnqueueNDRangeKernel(queue[0], k_calc_scattering_cross_section, 1, 0, global, NULL, 0, NULL, NULL);
-    err=meta_gen_opencl_ocl_kernels_calc_scattering_cross_section(queue[0], global, NULL, nx, ny, nz,ng, nmom, nmat, &d_gg_cs, &d_map, &d_scat_cs,0, NULL);
+    err=meta_gen_opencl_ocl_kernels_calc_scattering_cross_section(queue[0], &global, NULL, nx, ny, nz,ng, nmom, nmat, &d_gg_cs, &d_map, &d_scat_cs,0, NULL,1);
     check_error(err, "Enqueue calc_scattering_cross_section kernel");
 }
 

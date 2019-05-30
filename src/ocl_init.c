@@ -110,10 +110,11 @@ void opencl_setup_(void)
     meta_set_acc(-1, metaModePreferOpenCL); //Must be set to OpenCL, don't need a device since we will override
     meta_set_state_OpenCL(plat, device, context, queue[0]);
     meta_register_module(&meta_gen_opencl_metacl_module_registry);
+    
     // Create program
     program = clCreateProgramWithSource(context, 1, &ocl_kernels_ocl, NULL, &err);
     check_error(err, "Creating program");
-
+     	 
     // Build program
     char *options = "-cl-mad-enable -cl-fast-relaxed-math";
     err = clBuildProgram(program, 1, &device, options, NULL, NULL);

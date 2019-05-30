@@ -187,7 +187,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         check_error(err, "Setting flux_in/out args for sweep_cell kernel");
     }
 */
-	cl_double ddi= (cl_double)(d_dd_i);
+	//cl_double ddi= (cl_double)(d_dd_i);
 
     // Loop over the diagonal wavefronts
     for (unsigned int d = 0; d < ndiag; d++)
@@ -202,12 +202,12 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
 
 	if (timestep % 2 == 0)
         {
-            err= meta_gen_opencl_ocl_kernels_sweep_cell(queue[0], global, NULL, istep, jstep, kstep, oct,  ichunk,  nx,  ny,  nz,  ng,  nang,  noct,  cmom,  ddi, &d_dd_j, &d_dd_k, &d_mu, &d_scat_coeff, &d_time_delta, &d_total_cross_section, &d_flux_in[oct], &d_flux_out[oct], &d_flux_i, &d_flux_j, &d_flux_k, &d_source, &d_denom, &d_list, &d_groups_todo, &num_groups_todo, 0,NULL);
+            err= meta_gen_opencl_ocl_kernels_sweep_cell(queue[0], &global, NULL, istep, jstep, kstep, oct,  ichunk,  nx,  ny,  nz,  ng,  nang,  noct,  cmom,  d_dd_i, &d_dd_j, &d_dd_k, &d_mu, &d_scat_coeff, &d_time_delta, &d_total_cross_section, &d_flux_in[oct], &d_flux_out[oct], &d_flux_i, &d_flux_j, &d_flux_k, &d_source, &d_denom, &d_list, &d_groups_todo, &num_groups_todo, 0,NULL,2);
         
         }
         else
         {
-            err= meta_gen_opencl_ocl_kernels_sweep_cell(queue[0], global, NULL, istep, jstep, kstep, oct,  ichunk,  nx,  ny,  nz,  ng,  nang,  noct,  cmom,  ddi, &d_dd_j, &d_dd_k, &d_mu, &d_scat_coeff, &d_time_delta, &d_total_cross_section, &d_flux_out[oct], &d_flux_in[oct], &d_flux_i, &d_flux_j, &d_flux_k, &d_source, &d_denom, &d_list, &d_groups_todo, &num_groups_todo, 0,NULL);
+            err= meta_gen_opencl_ocl_kernels_sweep_cell(queue[0], &global, NULL, istep, jstep, kstep, oct,  ichunk,  nx,  ny,  nz,  ng,  nang,  noct,  cmom,  d_dd_i, &d_dd_j, &d_dd_k, &d_mu, &d_scat_coeff, &d_time_delta, &d_total_cross_section, &d_flux_out[oct], &d_flux_in[oct], &d_flux_i, &d_flux_j, &d_flux_k, &d_source, &d_denom, &d_list, &d_groups_todo, &num_groups_todo, 0,NULL,2);
         
         }
 	check_error(err, "enqueue wavefront");
