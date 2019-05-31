@@ -27,6 +27,7 @@ struct __meta_gen_opencl_metacl_module_frame {
 extern "C" {
 #endif
 a_module_record * meta_gen_opencl_metacl_module_registry(a_module_record * record);
+struct __meta_gen_opencl_metacl_module_frame * __meta_gen_opencl_metacl_module_lookup_frame(cl_command_queue queue);
 void meta_gen_opencl_metacl_module_init();
 void meta_gen_opencl_metacl_module_deinit();
 cl_int meta_gen_opencl_ocl_kernels_sweep_cell(cl_command_queue queue, size_t (*grid_size)[3], size_t (*block_size)[3], cl_int istep, cl_int jstep, cl_int kstep, cl_uint oct, cl_uint ichunk, cl_uint nx, cl_uint ny, cl_uint nz, cl_uint ng, cl_uint nang, cl_uint noct, cl_uint cmom, cl_double dd_i, cl_mem * dd_j, cl_mem * dd_k, cl_mem * mu, cl_mem * scat_coef, cl_mem * time_delta, cl_mem * total_cross_section, cl_mem * flux_in, cl_mem * flux_out, cl_mem * flux_i, cl_mem * flux_j, cl_mem * flux_k, cl_mem * source, cl_mem * denom, cl_mem * cell_index, cl_mem * groups_todo, cl_uint num_groups_todo, int async, cl_event * event , int workdim);
